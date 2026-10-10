@@ -7,7 +7,7 @@ import type { AllowedUser, Profile } from "@/lib/types";
 import { authorizeEmail, revokeEmail, updateProfile } from "../actions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Usuarios" };
+export const metadata = { title: "Administradores" };
 
 export default async function UsersPage() {
   const { supabase, profile } = await requireAdmin();
@@ -24,21 +24,21 @@ export default async function UsersPage() {
     <AdminFrame
       profile={profile}
       eyebrow="Administración"
-      title="Usuarios y"
-      accent="permisos"
-      intro="Solo los correos autorizados pueden evaluar. Cada evaluador ve únicamente sus propias fichas; los administradores ven todas."
+      title="Accesos al"
+      accent="panel"
+      intro="Los evaluadores no necesitan cuenta: registran su ficha en la página principal con su nombre. Aquí solo se gestionan las personas que pueden ver los resultados."
     >
       <section className="card stack" aria-labelledby="autorizar">
         <div>
           <h2 id="autorizar" style={{ fontSize: 18, color: "var(--navy)" }}>
-            Autorizar correo
+            Autorizar administrador
           </h2>
           <p className="subtitle">
-            La persona crea su cuenta con este correo en la pantalla de ingreso. Si ya tiene cuenta, se habilita al
-            instante.
+            La persona crea su cuenta con este correo en “Administración → Crear cuenta”. Si ya tiene cuenta, se
+            habilita al instante.
           </p>
         </div>
-        <ActionForm action={authorizeEmail} className="inline-form cols-4" submitLabel="Autorizar">
+        <ActionForm action={authorizeEmail} className="inline-form cols-3" submitLabel="Autorizar">
           <label className="field">
             <span>Nombre y apellido</span>
             <input className="input" name="full_name" maxLength={120} placeholder="Nombre del evaluador(a)" />
@@ -47,20 +47,14 @@ export default async function UsersPage() {
             <span>Correo</span>
             <input className="input" name="email" type="email" required placeholder="nombre@empresa.com" />
           </label>
-          <label className="field">
-            <span>Rol</span>
-            <select className="select" name="role" defaultValue="evaluador">
-              <option value="evaluador">Evaluador</option>
-              <option value="admin">Administrador</option>
-            </select>
-          </label>
+          <input type="hidden" name="role" value="admin" />
         </ActionForm>
       </section>
 
       <section aria-labelledby="cuentas">
         <div className="section-head">
           <div>
-            <h2 id="cuentas">Cuentas registradas</h2>
+            <h2 id="cuentas">Cuentas con acceso</h2>
             <p>{people.length} cuenta(s)</p>
           </div>
         </div>
@@ -94,15 +88,14 @@ export default async function UsersPage() {
                       <td>
                         {self ? (
                           <span className="chip chip-navy">Administrador (tú)</span>
+                        ) : p.role === "admin" ? (
+                          <span className="chip chip-blue">Administrador</span>
                         ) : (
                           <form action={updateProfile} className="row" style={{ gap: 6 }}>
                             <input type="hidden" name="id" value={p.id} />
-                            <select className="select" name="role" defaultValue={p.role} style={{ minHeight: 36, padding: "4px 8px", width: "auto" }} aria-label={`Rol de ${p.email}`}>
-                              <option value="evaluador">Evaluador</option>
-                              <option value="admin">Administrador</option>
-                            </select>
+                            <input type="hidden" name="role" value="admin" />
                             <button className="btn btn-outline btn-sm" type="submit">
-                              Guardar
+                              Hacer administrador
                             </button>
                           </form>
                         )}
@@ -170,7 +163,7 @@ export default async function UsersPage() {
                         {a.email}
                       </span>
                     </td>
-                    <td>{a.role === "admin" ? "Administrador" : "Evaluador"}</td>
+                    <td>{a.role === "admin" ? "Administrador" : "Sin acceso al panel"}</td>
                     <td>{registered.has(a.email) ? <span className="chip chip-blue">Cuenta creada</span> : <span className="chip chip-pend">Pendiente</span>}</td>
                     <td>
                       {a.email !== profile.email && (

@@ -440,7 +440,7 @@ details.ficha[open] > summary { border-bottom: 1px solid var(--line); }
 details.ficha .ficha__body { padding: 8px 14px 14px; }
 
 .inline-form { display: grid; gap: 10px; }
-@media (min-width: 720px) { .inline-form.cols-4 { grid-template-columns: 1.2fr 1.4fr 0.8fr auto; align-items: end; } .inline-form.cols-2 { grid-template-columns: 1fr auto; align-items: end; } }
+@media (min-width: 720px) { .inline-form.cols-3 { grid-template-columns: 1.2fr 1.4fr auto; align-items: end; } .inline-form.cols-4 { grid-template-columns: 1.2fr 1.4fr 0.8fr auto; align-items: end; } .inline-form.cols-2 { grid-template-columns: 1fr auto; align-items: end; } }
 
 .loading { display: grid; place-items: center; min-height: 40vh; color: var(--muted); font-size: 14px; }
 .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--brand-red); animation: spin .8s linear infinite; margin-bottom: 10px; }
@@ -452,3 +452,16 @@ details.ficha .ficha__body { padding: 8px 14px 14px; }
   body { background: #fff; }
   .card { box-shadow: none; }
 }
+
+/* ---------- Selección de postor (ficha pública) ---------- */
+.supplier-pick {
+  position: relative;
+  display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center;
+  border: 2px solid var(--line); border-radius: var(--r-lg); background: var(--surface);
+  padding: 10px 12px; min-height: 64px; cursor: pointer;
+}
+.supplier-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.supplier-pick:hover { border-color: var(--line-2); }
+.supplier-pick:has(input:focus-visible) { outline: 3px solid var(--blue); outline-offset: 2px; }
+.supplier-pick.is-selected { border-color: var(--navy); background: var(--blue-soft); }
+.supplier-pick.is-selected .supplier-row__letter { background: var(--navy); color: #fff; }

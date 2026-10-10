@@ -18,19 +18,21 @@ function heatLevel(avg: number | null) {
 
 export default async function AdminPage() {
   const { supabase, profile } = await requireAdmin();
-  const { error, suppliers, criteria, evaluations, profiles } = await loadPanelData(supabase);
+  const { error, suppliers, criteria, evaluations } = await loadPanelData(supabase);
 
   const stats = aggregate(suppliers, criteria, evaluations);
   const evaluated = stats.filter((s) => s.count > 0);
-  const evaluatorIds = new Set(evaluations.map((e) => e.evaluator_id));
+
   const overall = evaluations.length
     ? evaluations.reduce((a, e) => a + e.total_score, 0) / evaluations.length
     : null;
   const leader = evaluated[0];
-  const activeEvaluators = profiles.filter((p) => p.active);
   const activeSuppliers = suppliers.filter((s) => s.active);
-  const done = new Set(evaluations.map((e) => `${e.evaluator_id}:${e.supplier_id}`));
-  const expected = activeEvaluators.length * activeSuppliers.length;
+  // Los evaluadores se identifican por su nombre (sin cuenta).
+  const evaluators = [...new Map(evaluations.map((e) => [e.evaluator_key ?? e.evaluator_name.toLowerCase(), e.evaluator_name])).entries()]
+    .map(([key, name]) => ({ key, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const keyOf = (e: (typeof evaluations)[number]) => e.evaluator_key ?? e.evaluator_name.toLowerCase();
 
   return (
     <AdminFrame
@@ -55,9 +57,7 @@ export default async function AdminPage() {
         <div className="card card--navy kpi">
           <p className="label-caps">Fichas recibidas</p>
           <p className="kpi__value">{evaluations.length}</p>
-          <p className="kpi__hint">
-            {expected ? `${Math.round((done.size / expected) * 100)}% de ${expected} esperadas` : "Sin evaluadores activos"}
-          </p>
+          <p className="kpi__hint">{activeSuppliers.length} postores habilitados</p>
         </div>
         <div className="card card--blue kpi">
           <p className="label-caps">Promedio general</p>
@@ -69,10 +69,7 @@ export default async function AdminPage() {
         </div>
         <div className="card kpi">
           <p className="label-caps">Evaluadores</p>
-          <p className="kpi__value">
-            {evaluatorIds.size}
-            <small>/ {activeEvaluators.length}</small>
-          </p>
+          <p className="kpi__value">{evaluators.length}</p>
           <p className="kpi__hint">Con al menos una ficha</p>
         </div>
         <div className="card kpi">
@@ -235,13 +232,13 @@ export default async function AdminPage() {
         <div className="section-head">
           <div>
             <h2 id="cobertura">Avance del comité</h2>
-            <p>Puntaje de cada ficha enviada por evaluador · “—” = pendiente</p>
+            <p>Puntaje de cada ficha por evaluador (según el nombre registrado) · “—” = sin ficha</p>
           </div>
         </div>
-        {activeEvaluators.length === 0 ? (
+        {evaluators.length === 0 ? (
           <div className="empty">
-            <strong>No hay evaluadores activos</strong>
-            Autoriza correos en <Link href="/admin/usuarios">Usuarios</Link>.
+            <strong>Aún no hay evaluadores</strong>
+            Comparte el enlace de la ficha con el comité para empezar a recibir evaluaciones.
           </div>
         ) : (
           <div className="table-wrap">
@@ -258,12 +255,12 @@ export default async function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {activeEvaluators.map((p) => {
-                  const mine = evaluations.filter((e) => e.evaluator_id === p.id);
-                  const n = activeSuppliers.filter((s) => done.has(`${p.id}:${s.id}`)).length;
+                {evaluators.map((p) => {
+                  const mine = evaluations.filter((e) => keyOf(e) === p.key);
+                  const n = activeSuppliers.filter((s) => mine.some((e) => e.supplier_id === s.id)).length;
                   return (
-                    <tr key={p.id}>
-                      <td className="sticky-col">{p.full_name || p.email}</td>
+                    <tr key={p.key}>
+                      <td className="sticky-col">{p.name}</td>
                       {activeSuppliers.map((s) => {
                         const ev = mine.find((e) => e.supplier_id === s.id);
                         return (

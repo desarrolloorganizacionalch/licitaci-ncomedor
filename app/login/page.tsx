@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { BrandLockup } from "@/components/BrandLockup";
-import { BRAND } from "@/lib/brand";
 import { LoginForm } from "./LoginForm";
 
-export const metadata: Metadata = { title: "Ingresar" };
+export const metadata: Metadata = { title: "Acceso administrador" };
 
 export default async function LoginPage({
   searchParams,
@@ -15,13 +14,13 @@ export default async function LoginPage({
     <main className="auth">
       <section className="auth__hero">
         <BrandLockup size="lg" />
-        <h1>{BRAND.appName}</h1>
-        <p>{BRAND.appSubtitle}</p>
+        <h1>Panel del comité</h1>
+        <p>Acceso solo para administradores</p>
       </section>
       <div className="auth__panel">
         <LoginForm initialError={error} initialMessage={msg} />
         <p className="hint" style={{ textAlign: "center", marginTop: 16 }}>
-          {BRAND.committee}
+          ¿Eres evaluador? <a href="/">Llena la ficha de visita aquí</a>, no necesitas cuenta.
         </p>
       </div>
     </main>

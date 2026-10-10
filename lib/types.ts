@@ -35,8 +35,9 @@ export interface Answer {
 
 export interface Evaluation {
   id: string;
-  evaluator_id: string;
+  evaluator_id: string | null;
   evaluator_name: string;
+  evaluator_key?: string | null;
   supplier_id: string;
   visit_date: string;
   total_score: number;

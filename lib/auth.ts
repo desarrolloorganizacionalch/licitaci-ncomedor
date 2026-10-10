@@ -33,6 +33,6 @@ export async function requireActive() {
 
 export async function requireAdmin() {
   const s = await requireActive();
-  if (s.profile.role !== "admin") redirect("/");
+  if (s.profile.role !== "admin") redirect("/pendiente");
   return s;
 }

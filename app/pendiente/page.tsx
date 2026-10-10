@@ -6,7 +6,7 @@ export const metadata = { title: "Cuenta pendiente" };
 
 export default async function PendingPage() {
   const { user, profile } = await requireUser();
-  if (profile?.active && user.email_confirmed_at) redirect("/");
+  if (profile?.active && profile.role === "admin" && user.email_confirmed_at) redirect("/admin");
   return (
     <>
       <AppHeader profile={profile} />
@@ -17,14 +17,17 @@ export default async function PendingPage() {
         </h1>
         <div className="card stack">
           <p>
-            Tu cuenta <strong>{user.email}</strong> se creó correctamente, pero aún no está habilitada para evaluar.
+            La cuenta <strong>{user.email}</strong> no tiene acceso al panel administrativo.
           </p>
           <p className="subtitle">
-            Pide al administrador del Comité Evaluador (Bienestar) que autorice tu correo. Cuando lo haga, vuelve a
-            ingresar o actualiza esta página.
+            Pide a un administrador del Comité Evaluador (Bienestar) que autorice tu correo. Para registrar una ficha
+            de visita no necesitas cuenta: usa la página principal.
           </p>
           <a className="btn btn-outline" href="/pendiente">
             Actualizar
+          </a>
+          <a className="btn btn-navy" href="/">
+            Ir a la ficha de visita
           </a>
         </div>
       </main>

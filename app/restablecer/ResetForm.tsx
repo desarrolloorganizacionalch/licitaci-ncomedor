@@ -21,7 +21,7 @@ export function ResetForm() {
     const { error } = await createClient().auth.updateUser({ password });
     setBusy(false);
     if (error) return setError(error.message);
-    router.replace("/");
+    router.replace("/admin");
     router.refresh();
   }
 

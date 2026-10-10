@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 export function NavLinks({ links }: { links: { href: string; label: string }[] }) {
   const path = usePathname();
   const isCurrent = (href: string) =>
-    href === "/" ? path === "/" || path.startsWith("/evaluar") : path === href || path.startsWith(`${href}/`);
+    href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
   // "/admin" no debe marcarse cuando se está en "/admin/usuarios".
   const current = links
     .filter((l) => isCurrent(l.href))

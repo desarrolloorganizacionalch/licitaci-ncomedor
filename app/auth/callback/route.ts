@@ -8,9 +8,9 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type") as EmailOtpType | null;
-  const nextParam = url.searchParams.get("next") ?? "/";
+  const nextParam = url.searchParams.get("next") ?? "/admin";
   // Solo rutas internas (evita redirecciones abiertas).
-  const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/";
+  const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/admin";
 
   const supabase = await createClient();
   let ok = false;

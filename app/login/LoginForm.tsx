@@ -48,7 +48,7 @@ export function LoginForm({ initialError, initialMessage }: { initialError?: str
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.replace("/");
+        router.replace("/admin");
         router.refresh();
         return;
       }
@@ -64,12 +64,12 @@ export function LoginForm({ initialError, initialMessage }: { initialError?: str
         });
         if (error) throw error;
         if (data.session) {
-          router.replace("/");
+          router.replace("/admin");
           router.refresh();
           return;
         }
         setMessage(
-          "Te enviamos un correo para confirmar tu cuenta. Si tu correo fue autorizado por el comité, podrás evaluar al ingresar.",
+          "Te enviamos un correo para confirmar tu cuenta. Si tu correo fue autorizado como administrador, podrás entrar al panel.",
         );
         setMode("login");
         return;
@@ -175,8 +175,8 @@ export function LoginForm({ initialError, initialMessage }: { initialError?: str
       )}
       {mode === "signup" && (
         <p className="hint">
-          Solo los correos autorizados por el comité pueden registrar evaluaciones. Si aún no lo estás, tu cuenta
-          quedará pendiente hasta que un administrador la habilite.
+          Solo para administradores autorizados. Los evaluadores no necesitan cuenta: registran su ficha directamente
+          en la página principal.
         </p>
       )}
     </div>

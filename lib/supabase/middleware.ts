@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { supabaseEnv } from "./env";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+// Solo el panel administrativo exige sesión; la ficha es pública.
+const PROTECTED_PATHS = ["/admin", "/pendiente", "/restablecer"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -27,9 +28,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+  const isProtected = PROTECTED_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
-  if (!user && !isPublic) {
+  if (!user && isProtected) {
     const to = request.nextUrl.clone();
     to.pathname = "/login";
     to.search = "";
@@ -38,7 +39,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && path === "/login") {
     const to = request.nextUrl.clone();
-    to.pathname = "/";
+    to.pathname = "/admin";
     to.search = "";
     return NextResponse.redirect(to);
   }

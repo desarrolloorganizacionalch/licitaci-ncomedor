@@ -2,8 +2,9 @@
 
 Plataforma web móvil para digitalizar la **Ficha de Visita – Licitación Servicio de Alimentación** del Comité Evaluador NOGASA S.A.C. – Bienestar.
 
-- **Inicio de sesión** con correo y contraseña (Supabase Auth). Solo los correos autorizados por un administrador pueden evaluar.
-- **Ficha paso a paso** para celular: datos de la visita, los **6 criterios originales**, escala **Bueno (10) · Regular (5) · Malo (0)**, observación opcional por criterio y resumen.
+- **Ficha pública, sin contraseña**: el evaluador escribe su nombre, elige el postor y la fecha, y registra su ficha. Una ficha por nombre y postor.
+- **Ficha paso a paso** para celular: los **6 criterios originales**, escala **Bueno (10) · Regular (5) · Malo (0)**, observación opcional por criterio y resumen.
+- **Panel administrativo protegido** con correo y contraseña: solo los administradores autorizados ven los resultados.
 - **Cálculo automático sobre 60 puntos**, hecho y validado en la base de datos (el navegador no puede alterar el total).
 - **Panel administrativo**: ranking de postores, comparación por criterio, distribución de calificaciones, avance del comité, detalle con observaciones y exportación CSV (Excel).
 - **Gestión** de usuarios (autorización por correo y roles) y de empresas postoras.
@@ -32,19 +33,20 @@ Los textos de cada nivel (Bueno/Regular/Malo) se guardan en la tabla `fv_criteri
 
 Toda la autorización vive en la base de datos (Row Level Security), no solo en la interfaz:
 
-| Acción | Evaluador | Administrador |
+| Acción | Evaluador (sin cuenta) | Administrador |
 |---|---|---|
 | Ver postores habilitados y criterios | ✓ | ✓ |
-| Enviar o actualizar **su** ficha (una por postor) | ✓ | ✓ |
-| Ver fichas de otros evaluadores | — | ✓ |
+| Registrar una ficha (una por nombre y postor) | ✓ | ✓ |
+| Ver fichas registradas | — | ✓ |
 | Panel comparativo y exportación | — | ✓ |
-| Autorizar correos, cambiar roles, activar/desactivar | — | ✓ |
+| Autorizar administradores | — | ✓ |
 | Crear, renombrar, inhabilitar postores | — | ✓ |
-| Eliminar fichas | — | ✓ |
+| Eliminar fichas (p. ej. para que alguien corrija la suya) | — | ✓ |
 
-- Las fichas solo se escriben mediante la función `fv_submit_evaluation()` (security definer): exige los 6 criterios, puntajes 0/5/10, fecha no futura (zona Lima) y calcula el total.
-- Una cuenta solo está activa si su correo está **confirmado** y figura en `fv_allowed_users`. Cualquier otra cuenta queda inactiva y no ve datos.
-- Los anónimos no tienen ningún privilegio sobre las tablas.
+- Las fichas solo se escriben mediante la función `fv_submit_public_evaluation()` (security definer): exige nombre (3–120 caracteres), los 6 criterios, puntajes 0/5/10, fecha no futura (zona Lima), calcula el total e impide duplicados por nombre normalizado y postor.
+- Los visitantes solo pueden leer postores habilitados y criterios; no pueden leer, modificar ni borrar fichas.
+- Una cuenta de administrador solo está activa si su correo está **confirmado** y figura en `fv_allowed_users`.
+- **Límite del voto sin contraseña:** cualquiera con el enlace puede registrar fichas y no se verifica la identidad del nombre escrito. El administrador revisa el “Avance del comité” y elimina las fichas que no correspondan.
 - Un administrador no puede quitarse su propio rol ni desactivarse.
 - Cabeceras de seguridad (`X-Frame-Options`, `nosniff`, etc.) y exportación CSV protegida contra inyección de fórmulas.
 
@@ -56,7 +58,7 @@ Todos los objetos llevan el prefijo **`fv_`** para poder convivir con otras apps
 
 ### 1. Base de datos
 
-Aplica `supabase/migrations/20261010000000_init.sql` en el proyecto (SQL Editor o `supabase db push`). Crea tablas, políticas, funciones, los 6 criterios y los 4 postores iniciales (Almark, La Merced, Servicial Holding, Plus Aliments).
+Aplica en orden `supabase/migrations/20261010000000_init.sql` y `20261010010000_voto_publico.sql` en el proyecto (SQL Editor o `supabase db push`). Crea tablas, políticas, funciones, los 6 criterios y los 4 postores iniciales (Almark, La Merced, Servicial Holding, Plus Aliments).
 
 Autoriza al primer administrador (desde el SQL Editor):
 
@@ -65,11 +67,11 @@ insert into public.fv_allowed_users (email, full_name, role)
 values ('correo@empresa.com', 'Nombre Apellido', 'admin');
 ```
 
-Si esa persona ya tiene cuenta en el proyecto, queda habilitada al instante; si no, crea su cuenta en la pantalla de ingreso con ese correo.
+Si esa persona ya tiene cuenta en el proyecto, queda habilitada al instante; si no, crea su cuenta en **Administración → Crear cuenta** con ese correo.
 
 ### 2. Configuración de Auth (panel de Supabase)
 
-En **Authentication → URL Configuration → Redirect URLs** agrega la URL de la app, por ejemplo `https://<tu-app>.vercel.app/**`, para que los enlaces de confirmación y de recuperación de contraseña regresen a esta app.
+Solo afecta a los administradores: en **Authentication → URL Configuration → Redirect URLs** agrega la URL de la app, por ejemplo `https://<tu-app>.vercel.app/**`, para que los enlaces de confirmación y de recuperación de contraseña regresen a esta app.
 
 ### 3. Variables de entorno
 
@@ -99,18 +101,18 @@ Importa el repositorio en Vercel (framework Next.js) y define las tres variables
 
 ## Uso
 
-1. El administrador autoriza los correos del comité en **Usuarios**.
-2. Cada evaluador crea su cuenta (o ingresa), elige un postor y completa la ficha. El avance queda guardado en el dispositivo hasta enviarla; puede editarla después.
-3. El administrador revisa el **Panel comparativo**, el detalle de cada postor con sus observaciones y descarga el CSV.
+1. Comparte el enlace de la app con el comité.
+2. Cada evaluador escribe su nombre, elige el postor, completa la ficha y la registra. El avance queda guardado en el celular hasta enviarla. Para corregir una ficha enviada, el administrador la elimina y la persona la vuelve a llenar.
+3. El administrador entra por **Administración**, revisa el **Panel comparativo**, el detalle de cada postor con sus observaciones y descarga el CSV.
 
 ## Estructura
 
 ```
 app/
-  login/                 Ingreso, registro y recuperación de contraseña
+  page.tsx, VoteForm.tsx Ficha pública paso a paso (sin cuenta)
+  actions.ts             Registro de la ficha
+  login/                 Acceso de administradores
   auth/                  Callback de confirmación y cierre de sesión
-  page.tsx               Inicio del evaluador (postores y avance)
-  evaluar/[supplierId]/  Ficha paso a paso
   admin/                 Panel comparativo, detalle por postor, usuarios, postores, exportar
 components/              Cabecera, lockup de marca, formularios
 lib/                     Supabase, autorización, cálculo de puntajes (con pruebas)
