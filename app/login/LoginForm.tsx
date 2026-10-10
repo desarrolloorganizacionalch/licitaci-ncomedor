@@ -17,6 +17,8 @@ function translate(message: string) {
   if (ERRORS[message]) return ERRORS[message];
   if (/password/i.test(message) && /least|characters|weak/i.test(message))
     return "La contraseña debe tener al menos 8 caracteres e incluir letras y números.";
+  if (/failed to fetch|network|load failed/i.test(message))
+    return "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.";
   if (/rate limit|too many/i.test(message)) return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
   return message;
 }

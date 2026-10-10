@@ -8,7 +8,7 @@ export function AppHeader({ profile }: { profile: Profile | null }) {
   const links = isAdmin
     ? [
         { href: "/", label: "Evaluar" },
-        { href: "/admin", label: "Panel comparativo" },
+        { href: "/admin", label: "Panel" },
         { href: "/admin/usuarios", label: "Usuarios" },
         { href: "/admin/postores", label: "Postores" },
       ]

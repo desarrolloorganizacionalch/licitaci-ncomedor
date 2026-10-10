@@ -234,9 +234,8 @@ p { margin: 0; }
   text-align: center;
 }
 .auth__hero::before {
-  content: ""; position: absolute; inset: auto 0 0 0; height: 70%;
+  content: ""; position: absolute; inset: 0;
   background: url("/brand/city-lines.png") center bottom / cover no-repeat;
-  opacity: 0.9;
 }
 .auth__hero > * { position: relative; }
 .auth__hero .lockup { justify-content: center; margin-bottom: 26px; }
