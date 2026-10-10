@@ -12,9 +12,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const { ok } = await searchParams;
 
   const [{ data: suppliers, error: e1 }, { data: evaluations, error: e2 }] = await Promise.all([
-    supabase.from("suppliers").select("id, name, active, sort_order").eq("active", true).order("sort_order"),
+    supabase.from("fv_suppliers").select("id, name, active, sort_order").eq("active", true).order("sort_order"),
     supabase
-      .from("evaluations")
+      .from("fv_evaluations")
       .select("id, supplier_id, visit_date, total_score, updated_at")
       .eq("evaluator_id", profile.id),
   ]);

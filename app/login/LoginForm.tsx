@@ -56,7 +56,7 @@ export function LoginForm({ initialError, initialMessage }: { initialError?: str
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            data: { full_name: fullName, app: "ficha_visita" },
             emailRedirectTo: `${siteUrl()}/auth/callback`,
           },
         });

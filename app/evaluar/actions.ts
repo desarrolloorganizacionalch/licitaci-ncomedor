@@ -25,7 +25,7 @@ export async function submitEvaluation(input: SubmitInput): Promise<{ ok: true }
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("submit_evaluation", {
+  const { error } = await supabase.rpc("fv_submit_evaluation", {
     p_supplier_id: input.supplierId,
     p_visit_date: input.visitDate,
     p_answers: input.answers.map((a) => ({

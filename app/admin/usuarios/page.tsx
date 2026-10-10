@@ -12,8 +12,8 @@ export const metadata = { title: "Usuarios" };
 export default async function UsersPage() {
   const { supabase, profile } = await requireAdmin();
   const [{ data: allowed }, { data: profiles }] = await Promise.all([
-    supabase.from("allowed_users").select("email, full_name, role, created_at").order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, email, full_name, role, active, created_at").order("created_at", { ascending: false }),
+    supabase.from("fv_allowed_users").select("email, full_name, role, created_at").order("created_at", { ascending: false }),
+    supabase.from("fv_profiles").select("id, email, full_name, role, active, created_at").order("created_at", { ascending: false }),
   ]);
   const allowList = (allowed ?? []) as AllowedUser[];
   const people = (profiles ?? []) as Profile[];

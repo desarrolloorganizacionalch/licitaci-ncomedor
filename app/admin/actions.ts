@@ -29,7 +29,7 @@ export async function authorizeEmail(_: Result | null, form: FormData): Promise<
     const role = String(form.get("role") ?? "evaluador");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: "Correo inválido." };
     if (!ROLES.has(role)) return { ok: false, error: "Rol inválido." };
-    const { error } = await supabase.from("allowed_users").upsert({ email, full_name, role }, { onConflict: "email" });
+    const { error } = await supabase.from("fv_allowed_users").upsert({ email, full_name, role }, { onConflict: "email" });
     if (error) throw error;
     revalidatePath("/admin", "layout");
     return { ok: true, message: `${email} autorizado como ${role}.` };
@@ -41,7 +41,7 @@ export async function authorizeEmail(_: Result | null, form: FormData): Promise<
 export async function revokeEmail(form: FormData) {
   const { supabase } = await adminClient();
   const email = String(form.get("email") ?? "");
-  await supabase.from("allowed_users").delete().eq("email", email);
+  await supabase.from("fv_allowed_users").delete().eq("email", email);
   revalidatePath("/admin", "layout");
 }
 
@@ -54,7 +54,7 @@ export async function updateProfile(form: FormData) {
   const active = form.get("active");
   if (role !== null && ROLES.has(String(role))) patch.role = String(role);
   if (active !== null) patch.active = active === "true";
-  if (Object.keys(patch).length) await supabase.from("profiles").update(patch).eq("id", id);
+  if (Object.keys(patch).length) await supabase.from("fv_profiles").update(patch).eq("id", id);
   revalidatePath("/admin", "layout");
 }
 
@@ -64,12 +64,12 @@ export async function addSupplier(_: Result | null, form: FormData): Promise<Res
     const name = String(form.get("name") ?? "").trim();
     if (name.length < 2 || name.length > 120) return { ok: false, error: "Escribe un nombre válido." };
     const { data: last } = await supabase
-      .from("suppliers")
+      .from("fv_suppliers")
       .select("sort_order")
       .order("sort_order", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { error } = await supabase.from("suppliers").insert({ name, sort_order: (last?.sort_order ?? 0) + 1 });
+    const { error } = await supabase.from("fv_suppliers").insert({ name, sort_order: (last?.sort_order ?? 0) + 1 });
     if (error) throw error;
     revalidatePath("/", "layout");
     return { ok: true, message: `${name} agregado.` };
@@ -86,14 +86,14 @@ export async function updateSupplier(form: FormData) {
   const active = form.get("active");
   if (name !== null && String(name).trim().length >= 2) patch.name = String(name).trim().slice(0, 120);
   if (active !== null) patch.active = active === "true";
-  if (Object.keys(patch).length) await supabase.from("suppliers").update(patch).eq("id", id);
+  if (Object.keys(patch).length) await supabase.from("fv_suppliers").update(patch).eq("id", id);
   revalidatePath("/", "layout");
 }
 
 export async function deleteSupplier(_: Result | null, form: FormData): Promise<Result> {
   try {
     const { supabase } = await adminClient();
-    const { error } = await supabase.from("suppliers").delete().eq("id", String(form.get("id") ?? ""));
+    const { error } = await supabase.from("fv_suppliers").delete().eq("id", String(form.get("id") ?? ""));
     if (error) throw error;
     revalidatePath("/", "layout");
     return { ok: true };
@@ -104,6 +104,6 @@ export async function deleteSupplier(_: Result | null, form: FormData): Promise<
 
 export async function deleteEvaluation(form: FormData) {
   const { supabase } = await adminClient();
-  await supabase.from("evaluations").delete().eq("id", String(form.get("id") ?? ""));
+  await supabase.from("fv_evaluations").delete().eq("id", String(form.get("id") ?? ""));
   revalidatePath("/", "layout");
 }

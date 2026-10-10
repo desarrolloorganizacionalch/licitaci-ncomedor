@@ -10,8 +10,8 @@ export const metadata = { title: "Postores" };
 export default async function SuppliersPage() {
   const { supabase, profile } = await requireAdmin();
   const [{ data: suppliers }, { data: evals }] = await Promise.all([
-    supabase.from("suppliers").select("id, name, active, sort_order").order("sort_order"),
-    supabase.from("evaluations").select("supplier_id"),
+    supabase.from("fv_suppliers").select("id, name, active, sort_order").order("sort_order"),
+    supabase.from("fv_evaluations").select("supplier_id"),
   ]);
   const list = (suppliers ?? []) as Supplier[];
   const counts = new Map<string, number>();

@@ -12,7 +12,7 @@ export const getSession = cache(async () => {
   } = await supabase.auth.getUser();
   if (!user) return { supabase, user: null, profile: null };
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("fv_profiles")
     .select("id, email, full_name, role, active, created_at")
     .eq("id", user.id)
     .single<Profile>();
