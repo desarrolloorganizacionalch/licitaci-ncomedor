@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { AdminFrame } from "@/components/AdminFrame";
 import { loadPanelData, requireAdminKey } from "@/lib/admin";
-import { aggregate, formatDate, formatScore, MAX_SCORE, round1, tone } from "@/lib/scoring";
+import { ActionForm } from "@/components/ActionForm";
+import { aggregate, formatDate, formatScore, MAX_SCORE, round1, scaleOf, tone } from "@/lib/scoring";
+import { deleteAllEvaluations, deleteEvaluation } from "./actions";
 
 export const metadata = { title: "Panel comparativo" };
 export const dynamic = "force-dynamic";
@@ -15,11 +17,42 @@ function heatLevel(avg: number | null) {
   return 1;
 }
 
-export default async function AdminPage() {
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("es-PE", {
+    timeZone: "America/Lima",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ postor?: string; criterio?: string }>;
+}) {
+  const { postor: fSupplier = "", criterio: fCriterion = "" } = await searchParams;
   const key = await requireAdminKey();
   const { error, suppliers, criteria, evaluations } = await loadPanelData(key);
 
   const stats = aggregate(suppliers, criteria, evaluations);
+  const observations = evaluations
+    .filter((e) => !fSupplier || e.supplier_id === fSupplier)
+    .flatMap((e) =>
+      (e.evaluation_answers ?? [])
+        .filter((a) => a.observation?.trim() && (!fCriterion || String(a.criterion_id) === fCriterion))
+        .map((a) => ({
+          evaluationId: e.id,
+          criterionId: a.criterion_id,
+          score: a.score,
+          text: a.observation!.trim(),
+          evaluator: e.evaluator_name,
+          visitDate: e.visit_date,
+          supplier: suppliers.find((s) => s.id === e.supplier_id)?.name ?? "—",
+          criterion: criteria.find((c) => c.id === a.criterion_id)?.title ?? `Criterio ${a.criterion_id}`,
+        })),
+    );
   const evaluated = stats.filter((s) => s.count > 0);
 
   const overall = evaluations.length
@@ -40,9 +73,17 @@ export default async function AdminPage() {
       accent="Postores"
       intro={`Promedio de las fichas de visita del comité, sobre ${MAX_SCORE} puntos.`}
       actions={
-        <a className="btn btn-outline btn-sm" href="/admin/exportar">
-          Descargar CSV
-        </a>
+        <>
+          <a className="btn btn-outline btn-sm" href="#observaciones">
+            Observaciones
+          </a>
+          <a className="btn btn-outline btn-sm" href="#fichas">
+            Fichas y eliminar
+          </a>
+          <a className="btn btn-outline btn-sm" href="/admin/exportar">
+            Descargar CSV
+          </a>
+        </>
       }
     >
       {error && (
@@ -285,33 +326,134 @@ export default async function AdminPage() {
         )}
       </section>
 
-      {evaluations.length > 0 && (
-        <section aria-labelledby="recientes">
-          <div className="section-head">
-            <div>
-              <h2 id="recientes">Últimas fichas</h2>
-              <p>Ordenadas por fecha de envío</p>
-            </div>
+      <section id="observaciones" aria-labelledby="obs-title">
+        <div className="section-head">
+          <div>
+            <h2 id="obs-title">Observaciones del comité</h2>
+            <p>
+              {observations.length} observación(es)
+              {fSupplier || fCriterion ? " con los filtros aplicados" : " en total"}
+            </p>
           </div>
+          <form method="get" action="/admin#observaciones" className="row wrap no-print" style={{ gap: 8 }}>
+            <select className="select" name="postor" defaultValue={fSupplier} aria-label="Filtrar por postor" style={{ width: "auto", minHeight: 40 }}>
+              <option value="">Todos los postores</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <select className="select" name="criterio" defaultValue={fCriterion} aria-label="Filtrar por criterio" style={{ width: "auto", minHeight: 40 }}>
+              <option value="">Todos los criterios</option>
+              {criteria.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.id}. {c.title}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-outline btn-sm" type="submit">
+              Filtrar
+            </button>
+            {(fSupplier || fCriterion) && (
+              <Link className="btn-text" href="/admin#observaciones">
+                Quitar filtros
+              </Link>
+            )}
+          </form>
+        </div>
+        {observations.length === 0 ? (
+          <div className="empty">
+            <strong>Sin observaciones</strong>
+            {evaluations.length === 0
+              ? "Las respuestas abiertas del comité aparecerán aquí."
+              : "Ninguna ficha tiene observaciones con estos filtros."}
+          </div>
+        ) : (
+          <div className="card">
+            <ul className="obs-list">
+              {observations.map((o) => {
+                const sc = scaleOf(o.score);
+                return (
+                  <li key={`${o.evaluationId}-${o.criterionId}`} className="obs">
+                    <div className="obs__meta">
+                      <span className={`chip chip-${sc.key}`}>
+                        {sc.label} · {sc.value}
+                      </span>
+                      <strong style={{ color: "var(--navy)" }}>{o.supplier}</strong>
+                      <span>· {o.criterion}</span>
+                    </div>
+                    <p className="obs__text">“{o.text}”</p>
+                    <p className="hint">
+                      {o.evaluator} · visita del {formatDate(o.visitDate)}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      <section id="fichas" aria-labelledby="fichas-title">
+        <div className="section-head">
+          <div>
+            <h2 id="fichas-title">Fichas registradas</h2>
+            <p>{evaluations.length} ficha(s) · de la más reciente a la más antigua</p>
+          </div>
+          {evaluations.length > 0 && (
+            <div className="no-print">
+              <ActionForm
+                action={deleteAllEvaluations}
+                submitLabel={`Eliminar todas las fichas (${evaluations.length})`}
+                submitClass="btn btn-sm btn-danger"
+                resetOnSuccess={false}
+                confirmMessage={`¿Eliminar las ${evaluations.length} fichas registradas y todas sus respuestas? Úsalo solo para limpiar pruebas: no se puede deshacer.`}
+              >
+                <input type="hidden" name="supplier_id" value="" />
+              </ActionForm>
+            </div>
+          )}
+        </div>
+        {evaluations.length === 0 ? (
+          <div className="empty">
+            <strong>No hay fichas registradas</strong>
+            Comparte el enlace de la ficha con el comité para empezar.
+          </div>
+        ) : (
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
+                  <th className="sticky-col">Evaluador</th>
                   <th>Postor</th>
-                  <th>Evaluador</th>
                   <th>Visita</th>
                   <th className="num">Total</th>
+                  <th>Registrada</th>
                 </tr>
               </thead>
               <tbody>
-                {evaluations.slice(0, 12).map((e) => {
+                {evaluations.map((e) => {
                   const s = suppliers.find((x) => x.id === e.supplier_id);
                   return (
                     <tr key={e.id}>
+                      <td className="sticky-col">
+                        <strong>{e.evaluator_name}</strong>
+                        <div className="no-print">
+                          <ActionForm
+                            action={deleteEvaluation}
+                            submitLabel="Eliminar ficha"
+                            submitClass="btn-danger-text"
+                            resetOnSuccess={false}
+                            confirmMessage={`¿Eliminar la ficha de ${e.evaluator_name} para ${s?.name ?? "este postor"}? No se puede deshacer.`}
+                          >
+                            <input type="hidden" name="id" value={e.id} />
+                          </ActionForm>
+                        </div>
+                      </td>
                       <td>
                         <Link href={`/admin/postor/${e.supplier_id}`}>{s?.name ?? "—"}</Link>
                       </td>
-                      <td>{e.evaluator_name}</td>
                       <td>{formatDate(e.visit_date)}</td>
                       <td className="num">
                         <span className={`score-pill tone-${tone(e.total_score, MAX_SCORE)}`}>
@@ -319,14 +461,16 @@ export default async function AdminPage() {
                           <small>/{MAX_SCORE}</small>
                         </span>
                       </td>
+                      <td>{formatDateTime(e.created_at)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        </section>
-      )}
+        )}
+      </section>
+
       <p className="hint">
         Promedios redondeados a un decimal. Empates (misma cifra con un decimal) comparten puesto. Valor de referencia
         de colores: ≥ {round1(MAX_SCORE * 0.8)} alto, ≥ {round1(MAX_SCORE * 0.5)} medio.

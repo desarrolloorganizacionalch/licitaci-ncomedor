@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAdminKey, isValidAdminKey } from "@/lib/admin";
+import { getAdminKey, isValidAdminKey, loadPanelData } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
@@ -49,12 +49,46 @@ export async function updateSupplier(form: FormData) {
   revalidatePath("/", "layout");
 }
 
-export async function deleteEvaluation(form: FormData) {
-  const key = await adminKey();
-  const { error } = await createClient().rpc("fv_admin_delete_evaluation", {
-    p_key: key,
-    p_id: String(form.get("id") ?? ""),
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/", "layout");
+function deleteError(msg: string) {
+  if (/fv_admin_delete_evaluation|could not find the function|schema cache/i.test(msg)) {
+    return "Falta activar la función de borrado en Supabase (ver instrucciones del administrador).";
+  }
+  return msg;
+}
+
+export async function deleteEvaluation(_: Result | null, form: FormData): Promise<Result> {
+  try {
+    const key = await adminKey();
+    const { error } = await createClient().rpc("fv_admin_delete_evaluation", {
+      p_key: key,
+      p_id: String(form.get("id") ?? ""),
+    });
+    if (error) return { ok: false, error: deleteError(error.message) };
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: message(e) };
+  }
+}
+
+/** Borra todas las fichas (o las de un postor), útil para limpiar pruebas. */
+export async function deleteAllEvaluations(_: Result | null, form: FormData): Promise<Result> {
+  try {
+    const key = await adminKey();
+    const supplierId = String(form.get("supplier_id") ?? "");
+    const { evaluations, error } = await loadPanelData(key);
+    if (error) return { ok: false, error: error.message };
+    const ids = evaluations.filter((e) => !supplierId || e.supplier_id === supplierId).map((e) => e.id);
+    const client = createClient();
+    let removed = 0;
+    for (const id of ids) {
+      const { error: err } = await client.rpc("fv_admin_delete_evaluation", { p_key: key, p_id: id });
+      if (err) return { ok: false, error: deleteError(err.message) };
+      removed++;
+    }
+    revalidatePath("/", "layout");
+    return { ok: true, message: `${removed} ficha(s) eliminada(s).` };
+  } catch (e) {
+    return { ok: false, error: message(e) };
+  }
 }

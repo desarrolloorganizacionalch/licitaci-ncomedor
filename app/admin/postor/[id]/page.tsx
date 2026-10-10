@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminFrame } from "@/components/AdminFrame";
-import { ConfirmButton } from "@/components/ConfirmButton";
+import { ActionForm } from "@/components/ActionForm";
 import { loadPanelData, requireAdminKey } from "@/lib/admin";
 import { aggregate, formatDate, formatScore, MAX_SCORE, scaleOf, tone } from "@/lib/scoring";
 import { deleteEvaluation } from "../../actions";
@@ -156,12 +156,17 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
                         );
                       })}
                     </ul>
-                    <form action={deleteEvaluation} className="no-print" style={{ marginTop: 8 }}>
-                      <input type="hidden" name="id" value={e.id} />
-                      <ConfirmButton message={`¿Eliminar la ficha de ${e.evaluator_name}? Esta acción no se puede deshacer.`}>
-                        Eliminar ficha
-                      </ConfirmButton>
-                    </form>
+                    <div className="no-print" style={{ marginTop: 8 }}>
+                      <ActionForm
+                        action={deleteEvaluation}
+                        submitLabel="Eliminar ficha"
+                        submitClass="btn-danger-text"
+                        resetOnSuccess={false}
+                        confirmMessage={`¿Eliminar la ficha de ${e.evaluator_name}? Esta acción no se puede deshacer.`}
+                      >
+                        <input type="hidden" name="id" value={e.id} />
+                      </ActionForm>
+                    </div>
                   </div>
                 </details>
               ))}
