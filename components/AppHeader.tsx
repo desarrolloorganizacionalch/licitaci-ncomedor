@@ -1,19 +1,9 @@
 import Link from "next/link";
-import type { Profile } from "@/lib/types";
 import { BrandLockup } from "./BrandLockup";
 import { NavLinks } from "./NavLinks";
 
-export function AppHeader({ profile }: { profile: Profile | null }) {
-  const isAdmin = profile?.active && profile.role === "admin";
-  const links = isAdmin
-    ? [
-        { href: "/admin", label: "Panel" },
-        { href: "/admin/usuarios", label: "Administradores" },
-        { href: "/admin/postores", label: "Postores" },
-        { href: "/", label: "Ficha pública ↗" },
-      ]
-    : null;
-
+/** Cabecera del panel administrativo. */
+export function AppHeader() {
   return (
     <>
       <header className="app-header">
@@ -21,22 +11,26 @@ export function AppHeader({ profile }: { profile: Profile | null }) {
           <Link href="/admin" aria-label="Panel">
             <BrandLockup size="sm" />
           </Link>
-          {profile && (
-            <div className="user-chip">
-              <div className="user-chip__name">
-                {profile.full_name || profile.email}
-                <small>{profile.role === "admin" && profile.active ? "Administrador" : "Sin acceso"}</small>
-              </div>
-              <form action="/auth/signout" method="post">
-                <button className="btn-ghost-light" type="submit">
-                  Salir
-                </button>
-              </form>
+          <div className="user-chip">
+            <div className="user-chip__name">
+              Panel del comité
+              <small>Administración</small>
             </div>
-          )}
+            <form action="/panel/salir" method="post">
+              <button className="btn-ghost-light" type="submit">
+                Salir
+              </button>
+            </form>
+          </div>
         </div>
       </header>
-      {links && <NavLinks links={links} />}
+      <NavLinks
+        links={[
+          { href: "/admin", label: "Panel" },
+          { href: "/admin/postores", label: "Postores" },
+          { href: "/", label: "Ficha pública ↗" },
+        ]}
+      />
     </>
   );
 }

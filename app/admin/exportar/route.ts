@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { loadPanelData } from "@/lib/admin";
+import { getAdminKey, isValidAdminKey, loadPanelData } from "@/lib/admin";
 import { csvCell, todayInLima } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
 
 /** Exporta todas las fichas (una fila por ficha) en CSV compatible con Excel. */
 export async function GET() {
-  const { supabase, profile } = await getSession();
-  if (!profile?.active || profile.role !== "admin") {
+  const key = await getAdminKey();
+  if (!(await isValidAdminKey(key))) {
     return new NextResponse("No autorizado", { status: 403 });
   }
-  const { suppliers, criteria, evaluations, error } = await loadPanelData(supabase);
+  const { suppliers, criteria, evaluations, error } = await loadPanelData(key!);
   if (error) return new NextResponse(error.message, { status: 500 });
 
   const header = [

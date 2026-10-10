@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AdminFrame } from "@/components/AdminFrame";
-import { requireAdmin } from "@/lib/auth";
-import { loadPanelData } from "@/lib/admin";
+import { loadPanelData, requireAdminKey } from "@/lib/admin";
 import { aggregate, formatDate, formatScore, MAX_SCORE, round1, tone } from "@/lib/scoring";
 
 export const metadata = { title: "Panel comparativo" };
@@ -17,8 +16,8 @@ function heatLevel(avg: number | null) {
 }
 
 export default async function AdminPage() {
-  const { supabase, profile } = await requireAdmin();
-  const { error, suppliers, criteria, evaluations } = await loadPanelData(supabase);
+  const key = await requireAdminKey();
+  const { error, suppliers, criteria, evaluations } = await loadPanelData(key);
 
   const stats = aggregate(suppliers, criteria, evaluations);
   const evaluated = stats.filter((s) => s.count > 0);
@@ -36,7 +35,6 @@ export default async function AdminPage() {
 
   return (
     <AdminFrame
-      profile={profile}
       eyebrow="Licitación · Servicio de alimentación"
       title="Comparativo de"
       accent="Postores"

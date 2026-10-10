@@ -1,25 +1,37 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Criterion, Evaluation, Profile, Supplier } from "./types";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { createClient } from "./supabase/server";
+import type { Criterion, Evaluation, Supplier } from "./types";
 
-export async function loadPanelData(supabase: SupabaseClient) {
-  const [s, c, e, p] = await Promise.all([
-    supabase.from("fv_suppliers").select("id, name, active, sort_order").order("sort_order"),
-    supabase.from("fv_criteria").select("*").order("id"),
-    supabase
-      .from("fv_evaluations")
-      .select(
-        "id, evaluator_id, evaluator_name, evaluator_key, supplier_id, visit_date, total_score, created_at, updated_at, evaluation_answers:fv_evaluation_answers(criterion_id, score, observation)",
-      )
-      .order("updated_at", { ascending: false }),
-    supabase.from("fv_profiles").select("id, email, full_name, role, active, created_at").order("full_name"),
-  ]);
-  const error = s.error || c.error || e.error || p.error;
+export const ADMIN_COOKIE = "fv_admin";
+
+/** Clave del panel guardada en cookie al abrir el enlace secreto. */
+export async function getAdminKey(): Promise<string | null> {
+  const store = await cookies();
+  return store.get(ADMIN_COOKIE)?.value ?? null;
+}
+
+export async function isValidAdminKey(key: string | null | undefined): Promise<boolean> {
+  if (!key || key.length < 24 || key.length > 200) return false;
+  const { data, error } = await createClient().rpc("fv_admin_ok", { p_key: key });
+  return !error && data === true;
+}
+
+/** Para páginas del panel: devuelve la clave válida o envía a la pantalla de acceso. */
+export async function requireAdminKey(): Promise<string> {
+  const key = await getAdminKey();
+  if (!(await isValidAdminKey(key))) redirect("/sin-acceso");
+  return key!;
+}
+
+export async function loadPanelData(key: string) {
+  const { data, error } = await createClient().rpc("fv_admin_panel", { p_key: key });
+  const d = (data ?? {}) as { suppliers?: Supplier[]; criteria?: Criterion[]; evaluations?: Evaluation[] };
   return {
     error,
-    suppliers: (s.data ?? []) as Supplier[],
-    criteria: (c.data ?? []) as Criterion[],
-    evaluations: (e.data ?? []) as Evaluation[],
-    profiles: (p.data ?? []) as Profile[],
+    suppliers: d.suppliers ?? [],
+    criteria: d.criteria ?? [],
+    evaluations: d.evaluations ?? [],
   };
 }

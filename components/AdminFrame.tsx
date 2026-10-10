@@ -1,8 +1,6 @@
 import { AppHeader } from "./AppHeader";
-import type { Profile } from "@/lib/types";
 
 export function AdminFrame({
-  profile,
   eyebrow,
   title,
   accent,
@@ -10,7 +8,6 @@ export function AdminFrame({
   actions,
   children,
 }: {
-  profile: Profile;
   eyebrow: string;
   title: string;
   accent: string;
@@ -20,7 +17,7 @@ export function AdminFrame({
 }) {
   return (
     <>
-      <AppHeader profile={profile} />
+      <AppHeader />
       <main className="shell wide stack-lg">
         <div className="row between wrap" style={{ alignItems: "end" }}>
           <div className="stack" style={{ gap: 4 }}>

@@ -2,8 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminFrame } from "@/components/AdminFrame";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { requireAdmin } from "@/lib/auth";
-import { loadPanelData } from "@/lib/admin";
+import { loadPanelData, requireAdminKey } from "@/lib/admin";
 import { aggregate, formatDate, formatScore, MAX_SCORE, scaleOf, tone } from "@/lib/scoring";
 import { deleteEvaluation } from "../../actions";
 
@@ -12,8 +11,8 @@ export const metadata = { title: "Detalle de postor" };
 
 export default async function SupplierDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, profile } = await requireAdmin();
-  const { suppliers, criteria, evaluations } = await loadPanelData(supabase);
+  const key = await requireAdminKey();
+  const { suppliers, criteria, evaluations } = await loadPanelData(key);
   const supplier = suppliers.find((s) => s.id === id);
   if (!supplier) notFound();
 
@@ -23,7 +22,6 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
 
   return (
     <AdminFrame
-      profile={profile}
       eyebrow="Detalle de postor"
       title="Postor"
       accent={supplier.name}
